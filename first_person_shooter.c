@@ -6,7 +6,7 @@
 
 #define TARGET_COUNT 5
 #define PLAYER_HEIGHT 2.0f
-#define RESET_TIME 2.0
+#define RESET_TIME 5.0
 
 typedef struct {
     Vector3 position;
@@ -34,6 +34,9 @@ int main(void)
     // Camera rotation angles (in degrees)
     float cameraYaw = -90.0f;   // Facing towards negative Z initially
     float cameraPitch = 0.0f;
+
+    // Movement speed toggle state
+    bool isFast = false;
 
     // Five rectangular targets
     Dummy dummies[TARGET_COUNT] = {
@@ -76,8 +79,14 @@ int main(void)
         Vector3 worldUp = { 0.0f, 1.0f, 0.0f };
         Vector3 right = Vector3Normalize(Vector3CrossProduct(forward, worldUp));
 
-        // 2. Frame-rate independent WASD Movement
-        float moveSpeed = 6.0f * deltaTime; // Units per second
+        // 2. Speed Toggle Input (E for fast, Q for normal)
+        if (IsKeyPressed(KEY_E)) isFast = true;
+        if (IsKeyPressed(KEY_Q)) isFast = false;
+
+        // 3. Frame-rate independent WASD Movement
+        float baseSpeed = 6.0f;
+        float currentSpeed = isFast ? baseSpeed * 2.0f : baseSpeed;
+        float moveSpeed = currentSpeed * deltaTime; // Units per second
 
         if (IsKeyDown(KEY_W)) camera.position = Vector3Add(camera.position, Vector3Scale(forward, moveSpeed));
         if (IsKeyDown(KEY_S)) camera.position = Vector3Subtract(camera.position, Vector3Scale(forward, moveSpeed));
@@ -90,7 +99,7 @@ int main(void)
         // Update camera look target
         camera.target = Vector3Add(camera.position, forward);
 
-        // 3. Smooth Camera Zoom (Hold Right Mouse Button to Zoom / ADS)
+        // 4. Smooth Camera Zoom (Hold Right Mouse Button to Zoom / ADS)
         float targetFovy = IsMouseButtonDown(MOUSE_BUTTON_RIGHT) ? 30.0f : 70.0f;
         camera.fovy += (targetFovy - camera.fovy) * 12.0f * deltaTime;
 
@@ -175,11 +184,12 @@ int main(void)
         DrawCircleLines(cx, cy, 4, WHITE);
 
         // HUD Overlay
-        DrawRectangle(15, 15, 300, 115, (Color){ 0, 0, 0, 170 });
+        DrawRectangle(15, 15, 300, 135, (Color){ 0, 0, 0, 170 });
         DrawText("TARGET PRACTICE", 30, 25, 20, RAYWHITE);
         DrawText("WASD: Move", 30, 55, 16, LIGHTGRAY);
-        DrawText("Mouse: Look | Left Click: Tag", 30, 80, 16, LIGHTGRAY);
-        DrawText("Hold Right Click: Zoom / ADS", 30, 105, 16, LIGHTGRAY);
+        DrawText("E: Fast (2x) | Q: Normal Speed", 30, 80, 16, LIGHTGRAY);
+        DrawText("Mouse: Look | Left Click: Tag", 30, 105, 16, LIGHTGRAY);
+        DrawText("Hold Right Click: Zoom / ADS", 30, 130, 16, LIGHTGRAY);
 
         int activeTargets = 0;
         for (int i = 0; i < TARGET_COUNT; i++)
@@ -187,8 +197,8 @@ int main(void)
             if (dummies[i].hit) activeTargets++;
         }
 
-        DrawText(TextFormat("RED TARGETS: %d / 5", activeTargets), 30, 145, 20, RED);
-        DrawText(TextFormat("PLAYER HEIGHT: %.1f", PLAYER_HEIGHT), 30, 175, 18, RAYWHITE);
+        DrawText(TextFormat("RED TARGETS: %d / 5", activeTargets), 30, 165, 20, RED);
+        DrawText(TextFormat("SPEED: %s", isFast ? "FAST (2x)" : "NORMAL"), 30, 195, 18, isFast ? YELLOW : RAYWHITE);
         DrawText("ESC: Exit", screenWidth - 120, 25, 18, LIGHTGRAY);
 
         EndDrawing();
